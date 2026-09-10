@@ -1,0 +1,8 @@
+requests
+numpy
+pandas
+scikit-learn
+matplotlib
+xarray
+netCDF4
+torch

@@ -1,0 +1,21 @@
+{
+  "threads": 0,
+  "tag": "recon_2000_2022",
+  "group": "SEASON",
+  "folds": 5,
+  "epochs": 40,
+  "batch": 64,
+  "lr": 0.001,
+  "width": 16,
+  "frames": 4,
+  "seed": 0,
+  "duty": 0.7,
+  "vram": 0.6,
+  "priority": "below",
+  "workers": 4,
+  "max_minutes": 0,
+  "resume": false,
+  "verbose": false,
+  "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "params": 391009
+}
