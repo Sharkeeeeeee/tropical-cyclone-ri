@@ -1,0 +1,21 @@
+{
+  "threads": 0,
+  "tag": "NA_2020",
+  "group": "SID",
+  "folds": 3,
+  "epochs": 10,
+  "batch": 64,
+  "lr": 0.001,
+  "width": 16,
+  "frames": 4,
+  "seed": 0,
+  "duty": 0.7,
+  "vram": 0.6,
+  "priority": "below",
+  "workers": 3,
+  "max_minutes": 0,
+  "resume": false,
+  "verbose": false,
+  "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "params": 391009
+}
