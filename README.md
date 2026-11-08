@@ -10,7 +10,9 @@
 
 Rapid intensification (RI), a tropical cyclone gaining **≥30 kt in 24 hours**,
 is the forecast failure that hurts most: a storm that was manageable at
-bedtime is a major hurricane by morning. This repository asks whether the
+bedtime is a major hurricane by morning. Hurricane Otis (2023) went from a
+tropical storm to Category 5 in about a day before striking Acapulco, far
+beyond what operational forecasts predicted. This repository asks whether the
 **structure of a storm's cloud tops**, as seen from geostationary infrared
 imagery, tells you RI is coming, beyond what the large-scale environment
 already says.
@@ -41,6 +43,20 @@ already says.
 > NHC, JTWC, JMA, or 中央氣象署 (CWA).
 
 Everything here runs from public data and, so far, entirely on CPU.
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+python scripts/01_download_ibtracs.py   # 144 MB best-track archive from NOAA
+python scripts/02_build_labels.py       # RI labels + base-rate report
+python scripts/21_readme_figures.py     # rebuild the GIF above from GridSat-B1
+```
+
+The last step reads ~28 small storm boxes through NCEI's OPeNDAP server. If
+that server is down, download the whole files from the
+[AWS mirror](https://registry.opendata.aws/noaa-cdr-gridsat-b1/) and pass
+`--gridsat-dir`. The full pipeline is under [Pipeline](#pipeline).
 
 ## Status
 

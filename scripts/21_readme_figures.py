@@ -5,6 +5,9 @@
    best-track intensity. Uses the same patch extractor as the training data.
 2. reports/readme_results.png -- PR AUC of every model in the final
    reconnaissance-era comparison, read straight from the report CSV.
+3. reports/social_preview.png -- 1280x640 card for GitHub's social preview
+   (Settings > General > Social preview; GitHub has no API for it). The
+   Chinese line needs a CJK font: Microsoft JhengHei or Noto Sans CJK/TC.
 
 Needs the IBTrACS CSV (scripts/01_download_ibtracs.py) and network access to
 NCEI OPeNDAP for ~28 GridSat frames (~0.1 MB each).
@@ -196,6 +199,60 @@ def make_results() -> Path:
     return out
 
 
+def cjk_fonts():
+    """Installed fonts that can draw Traditional Chinese, best first."""
+    from matplotlib import font_manager
+    have = {f.name for f in font_manager.fontManager.ttflist}
+    want = ["Microsoft JhengHei", "Noto Sans TC", "Noto Sans CJK TC",
+            "PingFang TC"]
+    return [f for f in want if f in have][:1] + ["DejaVu Sans"]
+
+
+def frame(t: pd.Timestamp, k: pd.DataFrame, gridsat_dir: Path | None):
+    """Storm-centred brightness temperature (C) at time t."""
+    tn = k.index.as_unit("ns").asi8
+    tv = t.as_unit("ns").value
+    lat = float(np.interp(tv, tn, k["LAT"]))
+    lon = float(np.interp(tv, tn, k["LON"]))
+    local = (gridsat_dir / f"GRIDSAT-B1.{t:%Y.%m.%d.%H}.v02r01.nc"
+             if gridsat_dir else None)
+    da = open_local(local) if local and local.exists() else open_time(t)
+    return storm_patch(da, lat, lon)[0] - 273.15
+
+
+def make_social(k: pd.DataFrame, gridsat_dir: Path | None = None) -> Path:
+    t = pd.Timestamp("2005-08-28 12:00")             # 145 kt, clear eye
+    bt = frame(t, k, gridsat_dir)
+    bg, fg, dim = "#0d1117", "#f0f3f6", "#9198a1"
+
+    fig = plt.figure(figsize=(12.8, 6.4), dpi=100, facecolor=bg)
+    ax = fig.add_axes([0, 0, 0.5, 1])
+    ax.imshow(bt, cmap=IR_CMAP, vmin=VMIN, vmax=VMAX, origin="upper",
+              interpolation="bicubic")
+    ax.set_axis_off()
+    ax.text(0.03, 0.03, "Hurricane Katrina · 28 Aug 2005 12 UTC · 145 kt",
+            transform=ax.transAxes, color="white", fontsize=12,
+            path_effects=[patheffects.withStroke(linewidth=3,
+                                                 foreground="black")])
+
+    x = 0.54
+    fig.text(x, 0.80, "Can a satellite see a\nstorm about to explode?",
+             color=fg, fontsize=27, fontweight="bold", va="top",
+             linespacing=1.15)
+    fig.text(x, 0.52, "衛星雲圖看得出颱風即將爆發增強嗎？", color=fg,
+             fontsize=22, va="top", fontfamily=cjk_fonts())
+    fig.text(x, 0.38, "Predicting rapid intensification (≥30 kt in 24 h)\n"
+             "from geostationary infrared cloud structure.\n"
+             "100% public NOAA data · reproducible · MIT",
+             color=dim, fontsize=15, va="top", linespacing=1.5)
+    fig.text(x, 0.07, "github.com/Sharkeeeeeee/tropical-cyclone-ri",
+             color=dim, fontsize=13)
+    out = REPORTS_DIR / "social_preview.png"
+    fig.savefig(out, facecolor=bg)
+    plt.close(fig)
+    return out
+
+
 def main():
     import argparse
     ap = argparse.ArgumentParser(description=__doc__)
@@ -205,10 +262,14 @@ def main():
     ap.add_argument("--gridsat-dir", type=Path, default=None,
                     help="folder of whole GridSat-B1 files to use instead of "
                          "OPeNDAP, e.g. from the AWS mirror when NCEI is down")
+    ap.add_argument("--social-only", action="store_true",
+                    help="skip the 28-frame GIF")
     args = ap.parse_args()
     print(f"wrote {make_results()}")
     k = katrina_track(args.ibtracs)
-    print(f"wrote {make_gif(k, args.gridsat_dir)}")
+    print(f"wrote {make_social(k, args.gridsat_dir)}")
+    if not args.social_only:
+        print(f"wrote {make_gif(k, args.gridsat_dir)}")
 
 
 if __name__ == "__main__":
