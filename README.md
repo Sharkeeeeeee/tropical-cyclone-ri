@@ -2,6 +2,7 @@
 
 **衛星雲圖看得出颱風即將爆發增強嗎？**
 
+[![tests](https://github.com/Sharkeeeeeee/tropical-cyclone-ri/actions/workflows/tests.yml/badge.svg)](https://github.com/Sharkeeeeeee/tropical-cyclone-ri/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Data: 100% public](https://img.shields.io/badge/data-100%25%20public%20NOAA-2ea44f.svg)
 ![Runs on CPU](https://img.shields.io/badge/runs%20on-CPU-lightgrey.svg)
@@ -31,7 +32,10 @@ already says.
    learning to imitate Dvorak analysts instead of physics.
    ([Experiment A](reports/experiment_a_report.md))
 
-![PR AUC of every model in the reconnaissance-era comparison: environment + structure is best at 0.415; CNN only is 0.252](reports/readme_results.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="reports/readme_results_dark.png">
+  <img alt="PR AUC of every model in the reconnaissance-era comparison: environment + structure is best at 0.415; CNN only is 0.252" src="reports/readme_results.png">
+</picture>
 
 > **中文簡介**：「快速增強」指颱風 24 小時內增強 30 節以上，是颱風預報最容易失準、
 > 也最危險的情況。本專案只用公開的 NOAA 衛星紅外線雲圖和最佳路徑資料，檢驗
@@ -76,14 +80,19 @@ that server is down, download the whole files from the
   globally. Not 3,718 — consecutive 6-hourly hits inside one intensification
   burst are near-duplicates. This is a small-data problem.
 * Base rate **9.2%**. Accuracy is meaningless here and is never reported.
+Two samples appear below, and their numbers are not interchangeable. **All
+basins** is every SHIPS case from all six basins (31,991 cases, base rate 9.2%).
+**NA + EP** is the reconnaissance-verified subset that has storm-centred patches
+(12,339 cases, base rate 7.1%). The chart above uses NA + EP.
+
 * Best statistical baseline (gradient boosting, environment + SHIPS IR
-  predictors): **ROC AUC 0.891, PR AUC 0.481, BSS 0.258**.
-* **Hand-engineered cloud structure adds 3.8x what the two classical IR
-  predictors add** (+0.039 vs +0.010 PR AUC over environment alone), with
-  deviation-angle variance the strongest single structural feature.
+  predictors; all basins): **ROC AUC 0.891, PR AUC 0.481, BSS 0.258**.
 * The standard hand-engineered IR predictors add only **+0.019 PR AUC** once the
-  large-scale environment is known. That margin is what the vision model exists
-  to beat.
+  large-scale environment is known (all basins). That margin is what the vision
+  model exists to beat.
+* **Hand-engineered cloud structure adds 3.8x what the two classical IR
+  predictors add** (+0.039 vs +0.010 PR AUC over environment alone; NA + EP),
+  with deviation-angle variance the strongest single structural feature.
 * Patch pipeline validated end-to-end against SHIPS' own IR predictors:
   **r = 0.984** on percent area colder than −30 °C.
 * Best-track intensities are **quantized onto the Dvorak table** in every
@@ -153,6 +162,7 @@ values), so it is optimistic. The vision model must be held to the same standard
 ```
 src/tcri/     config, ibtracs, ships, gridsat, evaluate
 scripts/      numbered, run in order
+tests/        data-free unit tests (python -m pytest tests), run in CI
 data/raw/     downloads (gitignored)
 data/processed/  labels, joined tables, patch memmaps (gitignored)
 reports/      baseline report, validation figures

@@ -152,8 +152,17 @@ def make_gif(k: pd.DataFrame, gridsat_dir: Path | None = None) -> Path:
         buf.seek(0)
         frames.append(Image.open(buf).convert("RGB").copy())
 
-    pal = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT,
-                      dither=Image.Dither.NONE) for f in frames]
+    # One palette for every frame: no colour flicker between frames, and the
+    # GIF encoder can skip pixels that did not change (most of the chart).
+    w, h = frames[0].size
+    sample = frames[::4]
+    strip = Image.new("RGB", (w, h * len(sample)))
+    for i, f in enumerate(sample):
+        strip.paste(f, (0, h * i))
+    shared = strip.quantize(colors=160, method=Image.Quantize.MEDIANCUT,
+                            dither=Image.Dither.NONE)
+    pal = [f.quantize(palette=shared, dither=Image.Dither.NONE)
+           for f in frames]
     durations = [260] * len(pal)
     durations[-1] = 1800
     out = REPORTS_DIR / "readme_katrina.gif"
@@ -162,39 +171,55 @@ def make_gif(k: pd.DataFrame, gridsat_dir: Path | None = None) -> Path:
     return out
 
 
-def make_results() -> Path:
+THEMES = {
+    # GitHub's own page colours, so the chart sits flush in either mode.
+    "light": dict(bg="#ffffff", fg="#1f2328", dim="#59636e",
+                  env="#8c959f", ships="#c8cdd2", structure="#1f5fd6",
+                  cnn="#e8a200", suffix=""),
+    "dark": dict(bg="#0d1117", fg="#f0f3f6", dim="#9198a1",
+                 env="#57606a", ships="#8b949e", structure="#4c8dff",
+                 cnn="#f0b429", suffix="_dark"),
+}
+
+
+def make_results(theme: str = "light") -> Path:
+    c = THEMES[theme]
     r = pd.read_csv(REPORTS_DIR / "final_comparison_recon_2000_2022.csv")
     base = float(r.loc[r.model == "climatology", "PR_AUC"].iloc[0])
     r = r[r.model != "climatology"].sort_values("PR_AUC")
 
     def colour(m):
         if m == "environment":
-            return "0.55"
+            return c["env"]
         if "structure" in m and "CNN" not in m:
-            return "#1f5fd6"
+            return c["structure"]
         if "CNN" in m:
-            return "#e8a200"
-        return "0.75"
+            return c["cnn"]
+        return c["ships"]
 
-    fig, ax = plt.subplots(figsize=(8.0, 4.0), dpi=130)
+    fig, ax = plt.subplots(figsize=(8.0, 4.0), dpi=130, facecolor=c["bg"])
+    ax.set_facecolor(c["bg"])
     ax.barh(r.model, r.PR_AUC, color=[colour(m) for m in r.model])
     for y, v in enumerate(r.PR_AUC):
-        ax.text(v + 0.004, y, f"{v:.3f}", va="center", fontsize=8)
-    ax.axvline(base, color="0.3", ls=":", lw=1)
+        ax.text(v + 0.004, y, f"{v:.3f}", va="center", fontsize=8,
+                color=c["fg"])
+    ax.axvline(base, color=c["dim"], ls=":", lw=1)
     ax.text(base + 0.004, -0.9, f"climatology {base:.3f}", fontsize=7.5,
-            color="0.3")
+            color=c["dim"])
     ax.set_xlim(0, 0.47)
     ax.set_ylim(-1.2, len(r) - 0.5)
     ax.set_xlabel("PR AUC (higher is better) · 12,339 cases, NA + EP 2000–2022, "
-                  "season-grouped CV", fontsize=8)
-    ax.tick_params(labelsize=8)
+                  "season-grouped CV", fontsize=8, color=c["dim"])
+    ax.tick_params(labelsize=8, colors=c["fg"])
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
+    for s in ("left", "bottom"):
+        ax.spines[s].set_color(c["dim"])
     ax.set_title("Hand-engineered cloud structure beats a CNN on the same "
-                 "patches", fontsize=10, loc="left")
+                 "patches", fontsize=10, loc="left", color=c["fg"])
     fig.tight_layout()
-    out = REPORTS_DIR / "readme_results.png"
-    fig.savefig(out, facecolor="white")
+    out = REPORTS_DIR / f"readme_results{c['suffix']}.png"
+    fig.savefig(out, facecolor=c["bg"])
     plt.close(fig)
     return out
 
@@ -265,7 +290,8 @@ def main():
     ap.add_argument("--social-only", action="store_true",
                     help="skip the 28-frame GIF")
     args = ap.parse_args()
-    print(f"wrote {make_results()}")
+    for theme in THEMES:
+        print(f"wrote {make_results(theme)}")
     k = katrina_track(args.ibtracs)
     print(f"wrote {make_social(k, args.gridsat_dir)}")
     if not args.social_only:
