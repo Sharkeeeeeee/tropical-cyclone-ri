@@ -37,8 +37,10 @@ def main():
         for c, t in enumerate(sequence_times(t0)):
             da = open_time(t)
             # Interpolate the storm centre linearly between best-track fixes.
-            lat = np.interp(t.value, k.index.astype("int64"), k["LAT"])
-            lon = np.interp(t.value, k.index.astype("int64"), k["LON"])
+            tv = t.as_unit("ns").value            # pandas 3 defaults to us
+            tn = k.index.as_unit("ns").asi8
+            lat = np.interp(tv, tn, k["LAT"])
+            lon = np.interp(tv, tn, k["LON"])
             patch, nanfrac = storm_patch(da, float(lat), float(lon))
             bt = patch - 273.15
 
