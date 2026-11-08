@@ -1,9 +1,66 @@
-# Tropical cyclone rapid intensification from geostationary infrared imagery
+# Can a satellite see a storm about to explode?
 
-Predicting whether a tropical cyclone will gain ≥30 kt in the next 24 hours,
-from the structure of its cloud tops rather than from forecast-model output.
+**衛星雲圖看得出颱風即將爆發增強嗎？**
+
+[![tests](https://github.com/Sharkeeeeeee/tropical-cyclone-ri/actions/workflows/tests.yml/badge.svg)](https://github.com/Sharkeeeeeee/tropical-cyclone-ri/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Data: 100% public](https://img.shields.io/badge/data-100%25%20public%20NOAA-2ea44f.svg)
+![Runs on CPU](https://img.shields.io/badge/runs%20on-CPU-lightgrey.svg)
+
+![Hurricane Katrina (2005) rapidly intensifying, seen in GridSat-B1 infrared beside its best-track intensity](reports/readme_katrina.gif)
+
+Rapid intensification (RI), a tropical cyclone gaining **≥30 kt in 24 hours**,
+is the forecast failure that hurts most: a storm that was manageable at
+bedtime is a major hurricane by morning. Hurricane Otis (2023) went from a
+tropical storm to Category 5 in about a day before striking Acapulco, far
+beyond what operational forecasts predicted. This repository asks whether the
+**structure of a storm's cloud tops**, as seen from geostationary infrared
+imagery, tells you RI is coming, beyond what the large-scale environment
+already says.
+
+**What it found so far:**
+
+1. **Cloud structure carries real signal.** 141 hand-engineered structural
+   features add ~4x more skill on top of the environment than the two
+   classical satellite predictors in SHIPS do.
+2. **A CNN reading the same patches does *not* beat those features yet.**
+   The comparison is reported as it came out (below).
+3. **The labels themselves are contaminated.** Outside the Atlantic, "best-track"
+   intensity is estimated from the same infrared imagery by the Dvorak
+   technique. Intensities pile up on the Dvorak table, more strongly the less
+   aircraft reconnaissance a basin gets. A vision model trained there may be
+   learning to imitate Dvorak analysts instead of physics.
+   ([Experiment A](reports/experiment_a_report.md))
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="reports/readme_results_dark.png">
+  <img alt="PR AUC of every model in the reconnaissance-era comparison: environment + structure is best at 0.415; CNN only is 0.252" src="reports/readme_results.png">
+</picture>
+
+> **中文簡介**：「快速增強」指颱風 24 小時內增強 30 節以上，是颱風預報最容易失準、
+> 也最危險的情況。本專案只用公開的 NOAA 衛星紅外線雲圖和最佳路徑資料，檢驗
+> 「雲頂結構」能不能提前看出快速增強。目前結果：人工設計的雲結構特徵確實有用，
+> 卷積神經網路還沒能超越它；同時發現沒有飛機偵察的海域（包括西北太平洋），
+> 颱風強度標籤本身就受 Dvorak 判讀影響，這是用 AI 預測颱風時必須先處理的陷阱。
+
+> **Research code, not a forecast.** For warnings use your official agency:
+> NHC, JTWC, JMA, or 中央氣象署 (CWA).
 
 Everything here runs from public data and, so far, entirely on CPU.
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+python scripts/01_download_ibtracs.py   # 144 MB best-track archive from NOAA
+python scripts/02_build_labels.py       # RI labels + base-rate report
+python scripts/21_readme_figures.py     # rebuild the GIF above from GridSat-B1
+```
+
+The last step reads ~28 small storm boxes through NCEI's OPeNDAP server. If
+that server is down, download the whole files from the
+[AWS mirror](https://registry.opendata.aws/noaa-cdr-gridsat-b1/) and pass
+`--gridsat-dir`. The full pipeline is under [Pipeline](#pipeline).
 
 ## Status
 
@@ -23,14 +80,19 @@ Everything here runs from public data and, so far, entirely on CPU.
   globally. Not 3,718 — consecutive 6-hourly hits inside one intensification
   burst are near-duplicates. This is a small-data problem.
 * Base rate **9.2%**. Accuracy is meaningless here and is never reported.
+Two samples appear below, and their numbers are not interchangeable. **All
+basins** is every SHIPS case from all six basins (31,991 cases, base rate 9.2%).
+**NA + EP** is the reconnaissance-verified subset that has storm-centred patches
+(12,339 cases, base rate 7.1%). The chart above uses NA + EP.
+
 * Best statistical baseline (gradient boosting, environment + SHIPS IR
-  predictors): **ROC AUC 0.891, PR AUC 0.481, BSS 0.258**.
-* **Hand-engineered cloud structure adds 3.8x what the two classical IR
-  predictors add** (+0.039 vs +0.010 PR AUC over environment alone), with
-  deviation-angle variance the strongest single structural feature.
+  predictors; all basins): **ROC AUC 0.891, PR AUC 0.481, BSS 0.258**.
 * The standard hand-engineered IR predictors add only **+0.019 PR AUC** once the
-  large-scale environment is known. That margin is what the vision model exists
-  to beat.
+  large-scale environment is known (all basins). That margin is what the vision
+  model exists to beat.
+* **Hand-engineered cloud structure adds 3.8x what the two classical IR
+  predictors add** (+0.039 vs +0.010 PR AUC over environment alone; NA + EP),
+  with deviation-angle variance the strongest single structural feature.
 * Patch pipeline validated end-to-end against SHIPS' own IR predictors:
   **r = 0.984** on percent area colder than −30 °C.
 * Best-track intensities are **quantized onto the Dvorak table** in every
@@ -65,6 +127,7 @@ python scripts/09_train_cnn.py --tag NA_2020 --group SID     # CPU harness
 python -u scripts/10_structural_features.py --tag NA_2020    # 141 features
 python -u scripts/11_structure_baseline.py --tag NA_2020     # structure vs SHIPS IR
 python -u scripts/12_train_gpu.py --tag NA_2020 --group SID  # single-GPU trainer
+python -u scripts/21_readme_figures.py     # the GIF and chart at the top of this page
 ```
 
 `12_train_gpu.py` is written to share the machine: below-normal priority, a
@@ -99,6 +162,7 @@ values), so it is optimistic. The vision model must be held to the same standard
 ```
 src/tcri/     config, ibtracs, ships, gridsat, evaluate
 scripts/      numbered, run in order
+tests/        data-free unit tests (python -m pytest tests), run in CI
 data/raw/     downloads (gitignored)
 data/processed/  labels, joined tables, patch memmaps (gitignored)
 reports/      baseline report, validation figures
@@ -109,3 +173,10 @@ reports/      baseline report, validation figures
 `pip install -r requirements.txt` — numpy, pandas, scikit-learn, matplotlib,
 xarray, netCDF4, scipy, requests. torch is listed for the vision stage and is
 not needed for anything above.
+
+## License
+
+Code: [MIT](LICENSE). The data are not redistributed here; every script
+downloads them from the original providers (NOAA NCEI for IBTrACS and
+GridSat-B1, CIRA/RAMMB for SHIPS), and they remain under those providers'
+terms.
