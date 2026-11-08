@@ -1,0 +1,38 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # pandas 3 parses datetimes at microsecond resolution; pandas 2 at
+          # nanoseconds. Code that mixes the two units must fail here.
+          - python: "3.11"
+            pandas: "pandas>=2.2,<3"
+          - python: "3.12"
+            pandas: "pandas>=3"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install (no torch; the tests do not need it)
+        run: |
+          python -m pip install --upgrade pip
+          pip install "${{ matrix.pandas }}" numpy scipy scikit-learn \
+            matplotlib xarray netCDF4 requests pillow pytest
+      - name: Byte-compile every script and module
+        run: python -m compileall -q src scripts
+      - name: Unit tests
+        run: python -m pytest -q tests

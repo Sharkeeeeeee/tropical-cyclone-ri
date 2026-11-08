@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this code or its findings, please cite it as below."
+title: "Tropical cyclone rapid intensification from geostationary infrared imagery"
+abstract: >-
+  Reproducible pipeline, statistical baselines and controlled experiments for
+  predicting 24-hour rapid intensification (>= 30 kt) of tropical cyclones
+  from GridSat-B1 infrared imagery, including a test of Dvorak-derived label
+  contamination in best-track intensity.
+type: software
+authors:
+  - given-names: Steven
+    family-names: Li
+    alias: Sharkeeeeeee
+repository-code: "https://github.com/Sharkeeeeeee/tropical-cyclone-ri"
+license: MIT
+keywords:
+  - tropical cyclone
+  - rapid intensification
+  - satellite imagery
+  - GridSat-B1
+  - IBTrACS
+  - Dvorak technique
+  - machine learning
