@@ -226,7 +226,3 @@ Key budget considerations:
 - **$494 tier:** Omits Experiment C (30-minute MERGIR extraction and associated GPU time), retaining global label provenance and spatial resolution evaluations.
 - **$300 tier:** Retains Experiments A and B with reduced seed counts and smaller pretraining sets.
 - **$120 tier:** Covers global 8 km extraction and Experiment A exclusively.
-
-## 11. Applicant circumstances
-
-I am a full-time student without independent research funding or institutional compute allocations. Local hardware is sufficient for model development and evaluation on extracted patches, but lacks the network bandwidth and storage necessary to ingest multi-terabyte satellite archives. Grant funding directly supports cloud data extraction and self-supervised pretraining.

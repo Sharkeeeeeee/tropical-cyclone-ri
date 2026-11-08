@@ -8,9 +8,7 @@ abstract: >-
   contamination in best-track intensity.
 type: software
 authors:
-  - given-names: Steven
-    family-names: Li
-    alias: Sharkeeeeeee
+  - family-names: Sharkeeeeeee
 repository-code: "https://github.com/Sharkeeeeeee/tropical-cyclone-ri"
 license: MIT
 keywords:
