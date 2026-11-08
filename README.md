@@ -174,6 +174,24 @@ reports/      baseline report, validation figures
 xarray, netCDF4, scipy, requests. torch is listed for the vision stage and is
 not needed for anything above.
 
+## Secret scanning
+
+The `secrets` workflow runs Gitleaks on the full Git history for every push and
+pull request, and can also be started manually. Findings fail the check; secret
+values are redacted from its logs. The scanner uses the default detection rules.
+
+With [Gitleaks](https://github.com/gitleaks/gitleaks) 8.30.1 installed, check local
+files before committing and check history before pushing:
+
+```bash
+gitleaks dir . --redact --no-banner
+gitleaks git . --log-opts="--all" --redact --no-banner
+```
+
+Keep local credentials in ignored files such as `.env`; `.env.example` and
+`.env.sample` must contain sanitized examples only. Ignore rules do not remove
+files already tracked by Git or erase previously committed data.
+
 ## License
 
 Code: [MIT](LICENSE). The data are not redistributed here; every script
